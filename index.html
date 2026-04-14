@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>9D Study Group Hub</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 font-sans text-slate-900">
+
+    <div class="max-w-md mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-200">
+        <div class="bg-blue-600 p-6 text-center">
+            <h1 class="text-2xl font-bold text-white uppercase tracking-wide">Leonora Secondary</h1>
+            <p class="text-blue-100 text-sm">Class 9D Official Score Tracker</p>
+        </div>
+
+        <div class="p-6">
+            <div class="space-y-4 mb-8 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                <h3 class="font-bold text-blue-800 text-sm uppercase">Upload New Result</h3>
+                <input id="n" type="text" placeholder="Student Name" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                <input id="s" type="number" placeholder="Score %" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                <button onclick="up()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg transition-all active:scale-95">
+                    SUBMIT TO CLOUD
+                </button>
+            </div>
+
+            <div>
+                <h3 class="font-bold text-slate-500 text-xs uppercase tracking-widest mb-4 border-b pb-2 text-center">Live Leaderboard</h3>
+                <div id="list" class="space-y-3">
+                    <p class="text-center text-slate-400 text-sm animate-pulse">Connecting to database...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- PUT YOUR KEYS HERE ---
+        const URL = 'PASTE_YOUR_URL_HERE';
+        const KEY = 'PASTE_YOUR_ANON_KEY_HERE';
+        // --------------------------
+
+        const sb = supabase.createClient(URL, KEY);
+
+        async function get() {
+            const { data, error } = await sb.from('test_results').select('*').order('created_at', {ascending: false});
+            const listDiv = document.getElementById('list');
+            
+            if (error) {
+                listDiv.innerHTML = `<p class="text-red-500 text-center text-xs">Error: Check your keys!</p>`;
+                return;
+            }
+
+            if (data && data.length > 0) {
+                listDiv.innerHTML = data.map(r => `
+                    <div class="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-lg shadow-sm hover:border-blue-200 transition">
+                        <span class="font-semibold text-slate-700">${r.student_name}</span>
+                        <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold text-sm">${r.score}%</span>
+                    </div>
+                `).join('');
+            } else {
+                listDiv.innerHTML = `<p class="text-slate-400 text-center text-sm">No scores uploaded yet.</p>`;
+            }
+        }
+
+        async function up() {
+            const name = document.getElementById('n').value;
+            const score = document.getElementById('s').value;
+            
+            if(!name || !score) return alert("Please fill in both name and score.");
+
+            const { error } = await sb.from('test_results').insert([
+                { student_name: name, score: parseInt(score), subject: '9D Math' }
+            ]);
+
+            if (error) {
+                alert("Upload failed. Make sure your table is named 'test_results'");
+            } else {
+                document.getElementById('n').value = '';
+                document.getElementById('s').value = '';
+                get();
+            }
+        }
+
+        get();
+    </script>
+</body>
+</html>
